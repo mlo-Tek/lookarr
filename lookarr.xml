@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>LookArr</Name>
+  <Repository>ghcr.io/mlo-tek/lookarr:latest</Repository>
+  <Registry>https://ghcr.io</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project>https://github.com/mlo-tek/lookarr</Project>
+  <Overview>Discord-Bot der neue Plex-Medien (Filme, Serien, Episoden) automatisch in einem Discord-Kanal ankündigt. Empfängt Plex-Webhooks und sendet ansprechende Embeds mit Poster, Beschreibung, Bewertung und mehr.</Overview>
+  <Category>MediaApp:Other Tools:</Category>
+  <WebUI>http://[IP]:[PORT:32500]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/mlo-tek/lookarr/main/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+
+  <!-- ═══════════════ PORTS ═══════════════ -->
+  <Config Name="Webhook Port" Target="32500" Default="32500" Mode="tcp"
+          Description="Port auf dem der Bot auf Plex-Webhooks hört. In Plex unter Einstellungen → Webhooks eintragen: http://UNRAID-IP:32500/DEIN_TOKEN"
+          Type="Port" Display="always" Required="true" Mask="false">32500</Config>
+
+  <!-- ═══════════════ VOLUMES ═══════════════ -->
+  <Config Name="Konfigurationsordner" Target="/config" Default="/mnt/user/appdata/lookarr"
+          Description="Ordner für die config.json Datei. Lege hier eine config.json an (Vorlage: config.json.example im GitHub-Repo)."
+          Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/lookarr</Config>
+
+  <!-- ═══════════════ PFLICHTFELDER ═══════════════ -->
+  <Config Name="Plex Server URL" Target="PLEX_SERVER_URL"
+          Default="https://app.plex.tv/desktop#!/server/DEIN_SERVER_ID"
+          Description="Deine Plex-Server-URL. Zu finden in Plex Web → Einstellungen → Server → Allgemein (Server-ID)."
+          Type="Variable" Display="always" Required="true" Mask="false"></Config>
+
+  <Config Name="Webhook Token" Target="PLEX_WEBHOOK_TOKEN"
+          Default=""
+          Description="Ein selbst gewähltes zufälliges Passwort/Token. Wird Teil der Webhook-URL: http://UNRAID-IP:32500/DEIN_TOKEN"
+          Type="Variable" Display="always" Required="true" Mask="true"></Config>
+
+  <Config Name="Discord Webhook URL(s)" Target="DISCORD_WEBHOOK_URLS"
+          Default=""
+          Description="Discord Webhook URL(s). Mehrere URLs kommagetrennt eingeben. Erstellen unter: Discord Server → Kanal-Einstellungen → Integrationen → Webhooks"
+          Type="Variable" Display="always" Required="true" Mask="false"></Config>
+
+  <!-- ═══════════════ OPTIONALE FELDER ═══════════════ -->
+  <Config Name="Plex Token (optional)" Target="PLEX_TOKEN"
+          Default=""
+          Description="Dein persönlicher Plex-Token. Optional, wird für direkte API-Anfragen benötigt. Findest du in Plex Web → Einen Film anklicken → ... → XML anzeigen → X-Plex-Token in der URL."
+          Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+
+  <Config Name="Erlaubte Bibliotheken (optional)" Target="ALLOWED_LIBRARIES"
+          Default=""
+          Description="Kommagetrennte Liste von Bibliotheksnamen die angekündigt werden sollen. Leer lassen = alle Bibliotheken. Beispiel: Filme,Serien,Dokumentationen"
+          Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+
+  <Config Name="Port intern" Target="PORT"
+          Default="32500"
+          Description="Interner Port des Containers. Nur ändern wenn du weißt was du tust."
+          Type="Variable" Display="advanced" Required="false" Mask="false">32500</Config>
+
+  <Config Name="Log Level" Target="LOGLEVEL"
+          Default="INFO"
+          Description="Log-Detailtiefe: DEBUG, INFO, WARNING, ERROR"
+          Type="Variable" Display="advanced" Required="false" Mask="false">INFO</Config>
+</Container>
