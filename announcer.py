@@ -57,7 +57,12 @@ class Announcer:
         for url in urls:
             log.debug(f"Webhook erstellt für: {url}")
             wh_id, token = self._parse_url(url)
-            webhook = discord.SyncWebhook.partial(wh_id, token)
+            try:
+                wh_id_int = int(wh_id)
+            except ValueError:
+                log.error(f"Ungültige Webhook-ID in URL: {url}")
+                continue
+            webhook = discord.SyncWebhook.partial(wh_id_int, token)
             self.webhooks.append(webhook)
 
     def _parse_url(self, url: str):
