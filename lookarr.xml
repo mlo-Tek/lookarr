@@ -59,6 +59,27 @@
           Description="Kommagetrennte Liste von Bibliotheksnamen die angekündigt werden sollen. Leer lassen = alle Bibliotheken. Beispiel: Filme,Serien,Dokumentationen"
           Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
 
+  <!-- ═══════════════ SICHERHEIT ═══════════════ -->
+  <Config Name="IP-Whitelist (optional)" Target="ALLOWED_IPS"
+          Default=""
+          Description="Kommagetrennte Liste erlaubter IPs/Netze (z.B. 192.168.1.50,192.168.1.0/24,100.64.0.0/10). Leer = alle IPs erlaubt. EMPFEHLUNG: Trage die IP deines Plex-Servers und ggf. dein LAN/Tailscale-Netz ein."
+          Type="Variable" Display="always" Required="false" Mask="false"></Config>
+
+  <Config Name="Rate Limit (max. Anfragen)" Target="RATE_LIMIT_MAX"
+          Default="60"
+          Description="Maximale Anzahl an Anfragen pro IP innerhalb des Zeitfensters. Standard: 60."
+          Type="Variable" Display="advanced" Required="false" Mask="false">60</Config>
+
+  <Config Name="Rate Limit (Zeitfenster in Sekunden)" Target="RATE_LIMIT_WINDOW"
+          Default="60"
+          Description="Zeitfenster für das Rate Limit in Sekunden. Standard: 60."
+          Type="Variable" Display="advanced" Required="false" Mask="false">60</Config>
+
+  <Config Name="User-Agent prüfen" Target="REQUIRE_PLEX_USER_AGENT"
+          Default="true"
+          Description="Anfragen ablehnen, deren User-Agent nicht von Plex stammt (true/false). Standard: true."
+          Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
+
   <Config Name="Port intern" Target="PORT"
           Default="32500"
           Description="Interner Port des Containers. Nur ändern wenn du weißt was du tust."
