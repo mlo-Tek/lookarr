@@ -1,5 +1,8 @@
-import re
 import os
+import json
+import logging
+
+log = logging.getLogger("config")
 
 
 class ConfigError(Exception):
@@ -7,51 +10,55 @@ class ConfigError(Exception):
 
 
 class Config:
-    def __init__(self) -> None:
-        self.config = dict(os.environ)
+    def __init__(self):
+        self._data = {}
 
-    def _get_key(self, key: str, default: str = None):
-        if key in self.config:
-            return self.config[key]
-        elif key.upper() in self.config:
-            return self.config[key.upper()]
-        elif key.lower() in self.config:
-            return self.config[key.lower()]
-        elif default is not None:
-            return default
-        raise ConfigError(f"{key.upper()} not specified")
+        config_path = "/config/config.json"
+        if os.path.exists(config_path):
+            log.info(f"Lade Konfiguration aus {config_path}")
+            with open(config_path, "r") as f:
+                self._data = json.load(f)
+        else:
+            log.info("Kein config.json gefunden – nutze Umgebungsvariablen")
 
-    def get_plex_webhook_token(self):
-        token = self._get_key("plex_webhook_token")
-        if re.fullmatch(r"[a-zA-Z0-9-_]*", token) is None:
-            raise ConfigError("Invalid plex webhook token")
-        return token
+    def _get(self, key_json, key_env, required=True):
+        value = self._data.get(key_json) or os.environ.get(key_env)
+        if required and not value:
+            raise ConfigError(
+                f"Fehlende Konfiguration: '{key_json}' in config.json "
+                f"oder Umgebungsvariable '{key_env}'"
+            )
+        return value
 
     def get_plex_server_url(self):
-        url = self._get_key("plex_server_url")
-        if re.search(r"\/desktop\/?#!\/(server|media)\/[a-zA-Z0-9]*\/?$", url) is None:
-            raise ConfigError("Invalid plex server url")
-        if url.endswith("/"):
-            url = url[:-1]
-        return url
+        return self._get("plex_server_url", "PLEX_SERVER_URL")
+
+    def get_plex_token(self):
+        # Optional – wird für Poster-URLs benötigt
+        return self._get("plex_token", "PLEX_TOKEN", required=False)
+
+    def get_plex_webhook_token(self):
+        return self._get("plex_webhook_token", "PLEX_WEBHOOK_TOKEN")
 
     def get_discord_webhook_urls(self):
-        urls = self._get_key(
-            "discord_webhook_urls", self._get_key("discord_webhook_url", "")
-        ).split(",")
-        for url in urls:
-            if (
-                re.fullmatch(
-                    r"https://discord(app)?\.com/api/webhooks/[0-9]*/[a-zA-Z0-9-_]*$",
-                    url,
-                )
-                is None
-            ):
-                raise ConfigError(f"Invalid discord webhook url: {url}")
-        if not urls:
-            raise ConfigError("Please specify at least one discord webhook url")
-        return urls
+        value = self._data.get("discord_webhook_urls") or os.environ.get(
+            "DISCORD_WEBHOOK_URLS"
+        )
+        if not value:
+            # Fallback: einzelne URL
+            single = self._get("discord_webhook_url", "DISCORD_WEBHOOK_URL")
+            return [single]
+        if isinstance(value, list):
+            return value
+        # Komma-getrennte Umgebungsvariable
+        return [v.strip() for v in value.split(",")]
 
     def get_allowed_libraries(self):
-        allowed_libraries = self._get_key("updated_libraries", "")
-        return [lib.strip() for lib in allowed_libraries.split(",") if lib.strip()]
+        value = self._data.get("allowed_libraries") or os.environ.get(
+            "ALLOWED_LIBRARIES"
+        )
+        if not value:
+            return []
+        if isinstance(value, list):
+            return value
+        return [v.strip() for v in value.split(",")]
