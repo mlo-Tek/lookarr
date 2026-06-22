@@ -42,3 +42,9 @@ rate_limit_window: 60
 
 # Reject requests whose User-Agent does not look like Plex (default true)
 require_plex_user_agent: true
+
+# --- Testing ---
+
+# Send a test message to all Discord webhooks once at container start.
+# Useful to verify the configuration. Set back to false after a successful test.
+send_test_message: false
