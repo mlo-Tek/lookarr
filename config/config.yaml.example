@@ -1,0 +1,22 @@
+# LookArr Konfiguration
+# Kopiere diese Datei nach config.yaml und trage deine Werte ein
+
+# Deine Plex-Server-URL (aus Plex Web → Einstellungen → Server-ID)
+plex_server_url: "https://app.plex.tv/desktop#!/server/DEIN_SERVER_ID"
+
+# Selbst gewähltes Token – wird Teil der Webhook-URL: http://UNRAID-IP:32500/DEIN_TOKEN
+plex_webhook_token: "EIN_ZUFAELLIGES_PASSWORT"
+
+# Dein persönlicher Plex-Token (optional)
+# Findest du in Plex Web → Film anklicken → ... → XML anzeigen → X-Plex-Token in der URL
+plex_token: ""
+
+# Discord Webhook URL(s) – mehrere als Liste möglich
+discord_webhook_urls:
+  - "https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN"
+  # - "https://discord.com/api/webhooks/ZWEITER_WEBHOOK_ID/ZWEITER_TOKEN"
+
+# Nur diese Bibliotheken ankündigen (leer = alle)
+allowed_libraries: []
+  # - "Filme"
+  # - "Serien"
