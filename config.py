@@ -62,3 +62,43 @@ class Config:
         if isinstance(value, list):
             return value
         return [v.strip() for v in value.split(",")]
+
+    # ------------------------------------------------------------------ #
+    #  Sicherheits-Einstellungen                                            #
+    # ------------------------------------------------------------------ #
+
+    def get_allowed_ips(self):
+        """Liste erlaubter IPs/Netze. Leer = alle erlaubt."""
+        value = self._data.get("allowed_ips") or os.environ.get("ALLOWED_IPS")
+        if not value:
+            return []
+        if isinstance(value, list):
+            return value
+        return [v.strip() for v in value.split(",")]
+
+    def get_rate_limit_max(self):
+        """Max. Anfragen pro Zeitfenster (Standard: 60)."""
+        value = self._data.get("rate_limit_max") or os.environ.get("RATE_LIMIT_MAX")
+        try:
+            return int(value) if value else 60
+        except ValueError:
+            return 60
+
+    def get_rate_limit_window(self):
+        """Zeitfenster in Sekunden (Standard: 60)."""
+        value = self._data.get("rate_limit_window") or os.environ.get(
+            "RATE_LIMIT_WINDOW"
+        )
+        try:
+            return int(value) if value else 60
+        except ValueError:
+            return 60
+
+    def get_require_plex_user_agent(self):
+        """User-Agent-Filter aktivieren (Standard: True)."""
+        value = self._data.get("require_plex_user_agent")
+        if value is None:
+            value = os.environ.get("REQUIRE_PLEX_USER_AGENT", "true")
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in ("true", "1", "yes", "on")
