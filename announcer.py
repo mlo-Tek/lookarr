@@ -91,6 +91,63 @@ class Announcer:
                 log.error(f"Fehler beim Senden an Webhook: {e}")
 
     # ------------------------------------------------------------------ #
+    #  TEST-NACHRICHT                                                       #
+    # ------------------------------------------------------------------ #
+    def send_test_message(self) -> dict:
+        """
+        Sendet eine Test-Nachricht an alle konfigurierten Webhooks.
+        Gibt ein Ergebnis-Dict zurück mit success/failed-Liste.
+        """
+        from datetime import datetime
+
+        log.info(f"Sende Test-Nachricht an {len(self.webhooks)} Webhook(s)")
+
+        embed = discord.Embed(
+            title="✅ LookArr Verbindungstest",
+            description=(
+                "Wenn du diese Nachricht siehst, funktioniert die Verbindung "
+                "zwischen LookArr und diesem Discord-Kanal einwandfrei."
+            ),
+            color=0x2ECC71,  # Grün
+        )
+        embed.add_field(
+            name="🔗 Plex Server",
+            value=f"`{self.plex_url}`",
+            inline=False,
+        )
+        embed.add_field(
+            name="🕒 Zeitpunkt",
+            value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            inline=True,
+        )
+        embed.add_field(
+            name="📡 Webhooks",
+            value=f"{len(self.webhooks)} konfiguriert",
+            inline=True,
+        )
+        embed.set_footer(text="LookArr · Verbindungstest")
+
+        success = 0
+        failed = 0
+        errors = []
+        for i, webhook in enumerate(self.webhooks, 1):
+            try:
+                webhook.send(embed=embed)
+                success += 1
+                log.info(f"  Webhook {i}/{len(self.webhooks)}: erfolgreich")
+            except Exception as e:
+                failed += 1
+                errors.append(str(e))
+                log.error(f"  Webhook {i}/{len(self.webhooks)}: FEHLER – {e}")
+
+        return {
+            "total": len(self.webhooks),
+            "success": success,
+            "failed": failed,
+            "errors": errors,
+        }
+
+    # ------------------------------------------------------------------ #
     #  FILM                                                                #
     # ------------------------------------------------------------------ #
     def announce_movie(self, meta: dict, thumbnail: bytes):
