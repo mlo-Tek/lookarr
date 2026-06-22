@@ -83,6 +83,37 @@ def handle_library_new(metadata, thumbnail):
         log.warning(f"Unbekannter Medientyp: {ptype}")
 
 
+async def handle_test(request):
+    """
+    Test-Endpoint: schickt eine Test-Nachricht an alle Discord-Webhooks.
+    Aufruf: GET http://HOST:PORT/test/<webhook_token>
+    """
+    log.info("Test-Nachricht angefordert")
+
+    # Gleiche Sicherheitsprüfungen wie für echte Webhooks – außer Content-Type/User-Agent
+    if not security.check_rate_limit(request):
+        return web.Response(status=429, text="Too Many Requests")
+    if not security.check_ip_whitelist(request):
+        return web.Response(status=403, text="Forbidden")
+
+    result = announcer.send_test_message()
+
+    if result["failed"] == 0:
+        return web.json_response({
+            "status": "ok",
+            "message": f"Test-Nachricht an {result['success']} Webhook(s) gesendet",
+            **result,
+        })
+    else:
+        return web.json_response({
+            "status": "partial" if result["success"] > 0 else "error",
+            "message": (
+                f"{result['success']} erfolgreich, {result['failed']} fehlgeschlagen"
+            ),
+            **result,
+        }, status=500 if result["success"] == 0 else 207)
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(message)s",
@@ -125,8 +156,24 @@ if __name__ == "__main__":
 
     port = int(os.getenv("PORT", "32500"))
     log.info(f"Plex Webhook URL: http://HOST:{port}/{PLEX_WEBHOOK_TOKEN}")
+    log.info(f"Test-Endpoint:    http://HOST:{port}/test/{PLEX_WEBHOOK_TOKEN}")
+
+    # Optional: Test-Nachricht beim Start senden
+    if config.get_send_test_message():
+        log.info("send_test_message=true – sende Start-Test-Nachricht...")
+        result = announcer.send_test_message()
+        if result["failed"] == 0:
+            log.info(f"Start-Test: alle {result['success']} Webhook(s) erfolgreich")
+        else:
+            log.warning(
+                f"Start-Test: {result['success']} ok, {result['failed']} fehlgeschlagen"
+            )
+
     log.info("LookArr gestartet und wartet auf Ereignisse...")
 
     app = web.Application(client_max_size=50 * 1024 * 1024)  # 50MB für große Poster
-    app.add_routes([web.post(f"/{PLEX_WEBHOOK_TOKEN}", handle)])
+    app.add_routes([
+        web.post(f"/{PLEX_WEBHOOK_TOKEN}", handle),
+        web.get(f"/test/{PLEX_WEBHOOK_TOKEN}", handle_test),
+    ])
     web.run_app(app, port=port)
