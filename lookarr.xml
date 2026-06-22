@@ -29,7 +29,7 @@
 
   <!-- ═══════════════ VOLUMES ═══════════════ -->
   <Config Name="Konfigurationsordner" Target="/config" Default="/mnt/user/appdata/lookarr"
-          Description="Ordner für die config.json Datei. Lege hier eine config.json an (Vorlage: config.json.example im GitHub-Repo)."
+          Description="Ordner für die config.yaml Datei. Lege hier eine config.yaml an (Vorlage: config.yaml.example im GitHub-Repo)."
           Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/lookarr</Config>
 
   <!-- ═══════════════ PFLICHTFELDER ═══════════════ -->
