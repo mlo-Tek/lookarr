@@ -102,3 +102,12 @@ class Config:
         if isinstance(value, bool):
             return value
         return str(value).strip().lower() in ("true", "1", "yes", "on")
+
+    def get_send_test_message(self):
+        """Test-Nachricht beim Start senden (Standard: False)."""
+        value = self._data.get("send_test_message")
+        if value is None:
+            value = os.environ.get("SEND_TEST_MESSAGE", "false")
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in ("true", "1", "yes", "on")
