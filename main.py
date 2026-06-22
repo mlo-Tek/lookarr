@@ -3,6 +3,7 @@ import logging
 from aiohttp import web, hdrs
 from config import Config, ConfigError
 from announcer import Announcer
+from security import SecurityCheck
 
 log = logging.getLogger("main")
 
@@ -11,10 +12,12 @@ async def handle(request):
     """Eingehende Plex-Webhook-Anfragen verarbeiten"""
     log.info("Eingehende Anfrage")
 
-    if not request.content_type == "multipart/form-data":
-        log.info("Anfrage abgelehnt: Kein multipart/form-data (nicht von Plex)")
-        return web.Response()
+    # === Sicherheitsprüfungen vor dem Body-Lesen ===
+    pre_check = security.run_pre_checks(request)
+    if pre_check is not None:
+        return pre_check
 
+    # === Body lesen ===
     try:
         reader = await request.multipart()
         metadata = None
@@ -24,20 +27,20 @@ async def handle(request):
             part = await reader.next()
             if part is None:
                 break
-            if part.headers[hdrs.CONTENT_TYPE] == "application/json":
+            if part.headers.get(hdrs.CONTENT_TYPE) == "application/json":
                 metadata = await part.json()
                 continue
             thumbnail = await part.read(decode=False)
 
-    except Exception:
-        log.info("Anfrage abgelehnt: Fehler beim Lesen der Anfrage.")
+    except Exception as e:
+        log.info(f"Anfrage abgelehnt: Fehler beim Lesen der Anfrage ({e})")
         return web.Response(status=400)
 
-    try:
-        event = metadata["event"]
-    except (KeyError, TypeError):
-        log.info("Anfrage abgelehnt: Kein Event-Typ (nicht von Plex)")
-        return web.Response()
+    # === Payload-Validierung ===
+    if not security.validate_payload(metadata):
+        return web.Response(status=400, text="Invalid payload")
+
+    event = metadata["event"]
 
     if event == "library.new":
         try:
@@ -45,7 +48,7 @@ async def handle(request):
         except Exception as e:
             log.error("Fehler beim Verarbeiten von library.new")
             log.exception(e)
-            return web.Response(status=400)
+            return web.Response(status=500)
     else:
         log.info(f"Event ignoriert: {event}")
 
@@ -97,13 +100,32 @@ if __name__ == "__main__":
         )
         ALLOWED_LIBRARIES = config.get_allowed_libraries()
         PLEX_WEBHOOK_TOKEN = config.get_plex_webhook_token()
+
+        # === Sicherheits-Konfiguration ===
+        security = SecurityCheck(
+            allowed_ips=config.get_allowed_ips(),
+            rate_limit_max=config.get_rate_limit_max(),
+            rate_limit_window=config.get_rate_limit_window(),
+            require_plex_user_agent=config.get_require_plex_user_agent(),
+        )
+
+        # Zusammenfassung loggen
+        if config.get_allowed_ips():
+            log.info(f"IP-Whitelist aktiv: {config.get_allowed_ips()}")
+        else:
+            log.warning("Keine IP-Whitelist konfiguriert – alle IPs erlaubt!")
+        log.info(
+            f"Rate Limit: {config.get_rate_limit_max()} Anfragen / "
+            f"{config.get_rate_limit_window()}s"
+        )
+
     except ConfigError as e:
         log.critical(e, exc_info=True)
         exit(-1)
 
     port = int(os.getenv("PORT", "32500"))
     log.info(f"Plex Webhook URL: http://HOST:{port}/{PLEX_WEBHOOK_TOKEN}")
-    log.info("PlexAnnouncer gestartet und wartet auf Ereignisse...")
+    log.info("LookArr gestartet und wartet auf Ereignisse...")
 
     app = web.Application(client_max_size=50 * 1024 * 1024)  # 50MB für große Poster
     app.add_routes([web.post(f"/{PLEX_WEBHOOK_TOKEN}", handle)])
