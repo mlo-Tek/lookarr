@@ -1,22 +1,44 @@
-# LookArr Konfiguration
-# Kopiere diese Datei nach config.yaml und trage deine Werte ein
+# LookArr configuration
+# Copy this file to config.yaml and fill in your values.
 
-# Deine Plex-Server-URL (aus Plex Web → Einstellungen → Server-ID)
-plex_server_url: "https://app.plex.tv/desktop#!/server/DEIN_SERVER_ID"
+# --- Required ---
 
-# Selbst gewähltes Token – wird Teil der Webhook-URL: http://UNRAID-IP:32500/DEIN_TOKEN
-plex_webhook_token: "EIN_ZUFAELLIGES_PASSWORT"
+# Your Plex server URL (from Plex Web → Settings → Server ID)
+plex_server_url: "https://app.plex.tv/desktop#!/server/YOUR_SERVER_ID"
 
-# Dein persönlicher Plex-Token (optional)
-# Findest du in Plex Web → Film anklicken → ... → XML anzeigen → X-Plex-Token in der URL
-plex_token: ""
+# Random token of your choice – becomes part of the webhook URL:
+# http://UNRAID-IP:32500/YOUR_TOKEN
+plex_webhook_token: "some-random-token"
 
-# Discord Webhook URL(s) – mehrere als Liste möglich
+# Discord webhook URL(s) – list for multiple
 discord_webhook_urls:
   - "https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN"
-  # - "https://discord.com/api/webhooks/ZWEITER_WEBHOOK_ID/ZWEITER_TOKEN"
 
-# Nur diese Bibliotheken ankündigen (leer = alle)
+
+# --- Optional ---
+
+# Your personal Plex token (currently only used for Plex deep links)
+plex_token: ""
+
+# Only announce these libraries (empty = all)
 allowed_libraries: []
-  # - "Filme"
-  # - "Serien"
+  # - "Movies"
+  # - "TV Shows"
+
+
+# --- Security (recommended if exposed to the internet) ---
+
+# IP whitelist – only requests from these IPs/networks are accepted.
+# Empty = no whitelist (all IPs allowed).
+# Example: only your Plex server (LAN) and Tailscale network:
+allowed_ips: []
+  # - "192.168.1.50"        # Plex server LAN IP
+  # - "192.168.1.0/24"      # entire LAN
+  # - "100.64.0.0/10"       # Tailscale network
+
+# Rate limit: max requests per window per IP (default 60 per 60s)
+rate_limit_max: 60
+rate_limit_window: 60
+
+# Reject requests whose User-Agent does not look like Plex (default true)
+require_plex_user_agent: true
