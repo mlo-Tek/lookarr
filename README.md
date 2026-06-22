@@ -38,6 +38,7 @@ A Discord bot that announces newly added Plex media with rich embeds — large p
 | Discord library | `RequestsWebhookAdapter` (removed in discord.py 2.0) | Modern `SyncWebhook` API |
 | Configuration | JSON | **YAML** with inline comments |
 | Security | Token in URL only | **IP whitelist, rate limit, User-Agent filter, payload validation, X-Forwarded-For support** |
+| Testing | – | **Test message at startup + `/test/<token>` endpoint** |
 | Unraid | – | **Community Applications XML template** |
 | Build | – | GitHub Actions → `ghcr.io` |
 | Error handling | Crashes on malformed payloads | Logged and skipped, server keeps running |
@@ -75,6 +76,7 @@ A Discord bot that announces newly added Plex media with rich embeds — large p
 | `RATE_LIMIT_MAX` | ➖ | Max requests per IP per window (default `60`) |
 | `RATE_LIMIT_WINDOW` | ➖ | Rate limit window in seconds (default `60`) |
 | `REQUIRE_PLEX_USER_AGENT` | ➖ | Reject requests whose User-Agent isn't Plex (`true`/`false`, default `true`) |
+| `SEND_TEST_MESSAGE` | ➖ | Send a test message to all Discord webhooks at container start (`true`/`false`, default `false`) |
 | `LOGLEVEL` | ➖ | `DEBUG`, `INFO`, `WARNING` (default `INFO`) |
 
 **Alternatively use a config.yaml** at `/mnt/user/appdata/lookarr/config.yaml`:
@@ -99,6 +101,28 @@ Plex → **Settings** → **Webhooks** → **Add Webhook**:
 ```
 http://UNRAID-IP:32500/YOUR_TOKEN
 ```
+
+---
+
+## Testing the connection
+
+You can verify that LookArr can reach your Discord channel in two ways:
+
+### Option A: Test message at startup
+
+Set `SEND_TEST_MESSAGE=true` (or `send_test_message: true` in `config.yaml`) and restart the container. On startup, LookArr will send a test embed to all configured Discord webhooks. After confirming it works, set the value back to `false`.
+
+### Option B: Trigger a test message on demand
+
+LookArr exposes a separate test endpoint:
+
+```
+GET http://UNRAID-IP:32500/test/YOUR_TOKEN
+```
+
+Open this URL in your browser (or `curl` it). LookArr will send a test message to every configured Discord webhook and return a JSON status with which ones succeeded and which failed. This works at any time, no restart needed.
+
+The test endpoint respects the same IP whitelist and rate limit as the main webhook endpoint, so it is **not publicly callable** when you've configured `ALLOWED_IPS`.
 
 ---
 
