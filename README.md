@@ -154,6 +154,18 @@ The test endpoint respects the same IP whitelist and rate limit as the main webh
 
 ---
 
+## Finding your Plex Server ID
+
+1. Open Plex Web
+2. Click on any library (e.g. "Movies")
+3. Look at your browser's URL — it looks like:
+   `https://app.plex.tv/desktop/#!/server/abc123def456.../com.plexapp...`
+4. The long string between `/server/` and the next `/` is your Server ID
+5. Your full `PLEX_SERVER_URL` is then:
+   `https://app.plex.tv/desktop#!/server/abc123def456...`
+
+---
+
 ## Finding your Plex Token
 
 1. Open Plex Web
