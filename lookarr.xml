@@ -80,6 +80,11 @@
           Description="Anfragen ablehnen, deren User-Agent nicht von Plex stammt (true/false). Standard: true."
           Type="Variable" Display="advanced" Required="false" Mask="false">true</Config>
 
+  <Config Name="Test-Nachricht beim Start" Target="SEND_TEST_MESSAGE"
+          Default="false"
+          Description="Sendet beim Container-Start einmalig eine Test-Nachricht an alle Discord-Webhooks (true/false). Praktisch um die Konfiguration zu prüfen. Nach erfolgreichem Test wieder auf 'false' setzen."
+          Type="Variable" Display="always" Required="false" Mask="false">false</Config>
+
   <Config Name="Port intern" Target="PORT"
           Default="32500"
           Description="Interner Port des Containers. Nur ändern wenn du weißt was du tust."
