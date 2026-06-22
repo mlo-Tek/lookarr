@@ -1,5 +1,5 @@
 import os
-import json
+import yaml
 import logging
 
 log = logging.getLogger("config")
@@ -13,19 +13,19 @@ class Config:
     def __init__(self):
         self._data = {}
 
-        config_path = "/config/config.json"
+        config_path = "/config/config.yaml"
         if os.path.exists(config_path):
             log.info(f"Lade Konfiguration aus {config_path}")
             with open(config_path, "r") as f:
-                self._data = json.load(f)
+                self._data = yaml.safe_load(f) or {}
         else:
-            log.info("Kein config.json gefunden – nutze Umgebungsvariablen")
+            log.info("Kein config.yaml gefunden – nutze Umgebungsvariablen")
 
     def _get(self, key_json, key_env, required=True):
         value = self._data.get(key_json) or os.environ.get(key_env)
         if required and not value:
             raise ConfigError(
-                f"Fehlende Konfiguration: '{key_json}' in config.json "
+                f"Fehlende Konfiguration: '{key_json}' in config.yaml "
                 f"oder Umgebungsvariable '{key_env}'"
             )
         return value
