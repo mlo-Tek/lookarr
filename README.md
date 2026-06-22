@@ -24,6 +24,26 @@ A Discord bot that announces newly added Plex media with rich embeds — large p
 
 ---
 
+## What's different from the original?
+
+| Area | Original `plexannouncer` | LookArr |
+|---|---|---|
+| Poster | Small thumbnail (right side) | **Large poster image** (full width) |
+| Embed color | Plex gold for everything | Different color per media type |
+| Movie fields | Title, summary, duration, year, rating | + genres, director, audience rating, formatted runtime |
+| Show fields | Title, summary, year, rating | + season count, episode count, genres |
+| Episode format | `Show: Episode Title` with `Season: 1` / `Episode: 5` | `Show · S01E05 – Episode Title` + new season detection |
+| Discord webhooks | Single webhook URL | **Multiple webhooks** (list) |
+| Library filter | – | Filter announcements by Plex library (`ALLOWED_LIBRARIES`) |
+| Discord library | `RequestsWebhookAdapter` (removed in discord.py 2.0) | Modern `SyncWebhook` API |
+| Configuration | JSON | **YAML** with inline comments |
+| Security | Token in URL only | **IP whitelist, rate limit, User-Agent filter, payload validation, X-Forwarded-For support** |
+| Unraid | – | **Community Applications XML template** |
+| Build | – | GitHub Actions → `ghcr.io` |
+| Error handling | Crashes on malformed payloads | Logged and skipped, server keeps running |
+
+---
+
 ## Setup on Unraid
 
 ### 1. Create a Discord Webhook
