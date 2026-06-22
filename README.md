@@ -1,48 +1,123 @@
-# Plex Announcer
+# LookArr 🎬
 
-A Discord bot that sends updates about newly added Plex media to a Discord channel using webhooks.
+> ⚠️ **Transparency & Disclaimer**
+>
+> I wanted a tool like [plexannouncer](https://github.com/tenasi/plexannouncer) but felt some settings and the Discord embed design were lacking. Since I have no coding knowledge, I had [Claude](https://claude.ai) (Anthropic's AI) build and extend this fork entirely.
+>
+> **I have not manually reviewed the code myself.** Use this project at your own risk.
+>
+> This tool handles sensitive data (Plex tokens, Discord webhook URLs). It is intended for use **within your local home network**. Exposing it to the internet is done **at your own risk** — see the Security section below for the mitigations that are in place and their limits.
 
-## Getting Started
+A Discord bot that announces newly added Plex media with rich embeds — large posters, ratings, genres, and more.
 
-To get started you first have to setup a webhook within your discord server / channel settings and copy the webhook url.
+> Based on [plexannouncer](https://github.com/tenasi/plexannouncer) by tenasi. Extended with improved Discord embed design, additional metadata, security hardening, Unraid support, and YAML configuration.
 
-For more information about how you create webhooks and what they are check [here](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks).
+---
 
-### Usage
+## Features
 
-Note that the container bust me accessible from your plex host. If you running both of them on the same server just enter `localhost` instead.
+- 🎬 **New Movies** – large poster, description, runtime, rating, genre, director
+- 📺 **New Shows** – large poster, description, season count, genre
+- ▶️ **New Episodes** – S01E01 format, runtime, description, new season detection
+- 🎵 **New Music** – artist, album, duration
+- 🔒 **Security:** IP whitelist, rate limiting, User-Agent filter, payload validation
 
-#### With Env Variables
+---
 
-Run the container and specify your PLEX_SERVER_URL, PLEX_WEBHOOK_TOKEN and DISCORD_WEBHOOK_URL as environment variables:
-```bash
-docker run -p 32500:32500 -e PLEX_SERVER_URL="https://app.plex.tv/desktop#!/server/SERVER_ID" -e PLEX_WEBHOOK_TOKEN="SOME_RANDOM_TOKEN" -e DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN" tenasi/plexannouncer:latest
+## Setup on Unraid
+
+### 1. Create a Discord Webhook
+
+1. Open your Discord server
+2. Channel Settings (⚙️) → **Integrations** → **Webhooks** → **New Webhook**
+3. Copy the webhook URL
+
+### 2. Add the Container
+
+**Docker tab → "Add Container":**
+
+| Field | Value |
+|---|---|
+| Repository | `ghcr.io/mlo-tek/lookarr:latest` |
+| Port | Host `32500` → Container `32500` (TCP) |
+| Volume | `/mnt/user/appdata/lookarr` → `/config` |
+
+### 3. Set Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `PLEX_SERVER_URL` | ✅ | Your Plex server URL |
+| `PLEX_WEBHOOK_TOKEN` | ✅ | A random token of your choice (becomes part of the webhook URL) |
+| `DISCORD_WEBHOOK_URLS` | ✅ | Discord webhook URL(s), comma-separated for multiple |
+| `PLEX_TOKEN` | ➖ | Your personal Plex token (optional) |
+| `ALLOWED_LIBRARIES` | ➖ | Comma-separated library names to announce, empty = all |
+| `ALLOWED_IPS` | ➖ | **Recommended.** Comma-separated IPs/networks allowed to send webhooks. Empty = all allowed |
+| `RATE_LIMIT_MAX` | ➖ | Max requests per IP per window (default `60`) |
+| `RATE_LIMIT_WINDOW` | ➖ | Rate limit window in seconds (default `60`) |
+| `REQUIRE_PLEX_USER_AGENT` | ➖ | Reject requests whose User-Agent isn't Plex (`true`/`false`, default `true`) |
+| `LOGLEVEL` | ➖ | `DEBUG`, `INFO`, `WARNING` (default `INFO`) |
+
+**Alternatively use a config.yaml** at `/mnt/user/appdata/lookarr/config.yaml`:
+
+```yaml
+plex_server_url: "https://app.plex.tv/desktop#!/server/YOUR_SERVER_ID"
+plex_webhook_token: "some-random-token"
+discord_webhook_urls:
+  - "https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN"
+allowed_libraries: []
+allowed_ips:
+  - "192.168.1.50"        # your Plex server
+  - "192.168.1.0/24"      # your LAN
+rate_limit_max: 60
+rate_limit_window: 60
+require_plex_user_agent: true
 ```
 
-#### With Config File
+### 4. Register the Webhook in Plex
 
-First create a config file somewhere and insert your plex server url, your Discord webhook url and some random token.
-```json
-{
-    "plex_server_url": "https://app.plex.tv/desktop#!/server/SERVERID",
-    "plex_webhook_token": "RANDOM_TOKEN",
-    "discord_webhook_url": "https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN"
-}
+Plex → **Settings** → **Webhooks** → **Add Webhook**:
+```
+http://UNRAID-IP:32500/YOUR_TOKEN
 ```
 
-Then run the container and point to your config folder:
-```bash
-docker run -v /path/to/config/dir:/config -p 32500:32500 tenasi/plexannouncer:latest
-```
+---
 
-#### Register the Webhook in Plex
+## Security
 
-Register the bot in Plex under Settings/Webhooks with the link being:
+**Plex webhooks have no HMAC/signature mechanism.** There is no way to cryptographically verify that an incoming webhook actually came from your Plex server. LookArr therefore stacks several lighter checks:
 
-```
-http://IP:PORT/RANDOM_TOKEN
-```
+| Layer | What it does | Limits |
+|---|---|---|
+| Token in URL | Caller must know the secret token in the URL path | Anyone who learns the URL can call it |
+| **IP whitelist** | Only accepts requests from configured IPs/networks | TCP makes IP spoofing very hard, so this is the strongest layer |
+| Rate limiting | Limits requests per IP per time window | Mitigates spam/flooding |
+| User-Agent filter | Rejects requests not claiming `PlexMediaServer/...` | Easily spoofed, just an extra hurdle |
+| Payload validation | Rejects malformed JSON or non-Plex payloads | Bad payloads can still trigger the bot if they look right |
 
-## Sources
+### Recommendations
 
-* [GitHub](https://github.com/tenasi/plexannouncer)
+- **Keep it on your LAN.** Don't expose it to the internet unless you have a reason.
+- **Always set `ALLOWED_IPS`** when exposed. List only the IP of your Plex server (and maybe your reverse proxy / Tailscale network). This is the single most effective protection.
+- **Use a reverse proxy with TLS** if you expose it externally. LookArr itself only serves HTTP.
+- **Use a long, random `PLEX_WEBHOOK_TOKEN`** (32+ characters). It's the only thing protecting the URL itself.
+- **Use a separate Discord channel** for these notifications so a flood of fake webhooks would only spam that channel.
+
+### What is NOT protected
+
+- A successful intruder with shell access to your server can read the config file (Plex token, Discord webhook URLs in plain text).
+- A reverse-proxy misconfiguration that strips `X-Forwarded-For` can break the IP whitelist.
+- Discord webhook URLs in your config are themselves capable of posting to your channel — treat them like passwords.
+
+---
+
+## Finding your Plex Token
+
+1. Open Plex Web
+2. Click any movie → `···` → **View XML**
+3. In the URL: `X-Plex-Token=XXXXXXXXXX` — that's your token
+
+---
+
+## Credits
+
+Based on [tenasi/plexannouncer](https://github.com/tenasi/plexannouncer) – MIT License
