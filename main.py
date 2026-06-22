@@ -1,7 +1,6 @@
 import os
 import logging
 from aiohttp import web, hdrs
-
 from config import Config, ConfigError
 from announcer import Announcer
 
@@ -9,18 +8,18 @@ log = logging.getLogger("main")
 
 
 async def handle(request):
-    """Handle inbound request for web server"""
-    log.info("Inbound request")
-    # discard all requests not of type multipart/form-data
+    """Eingehende Plex-Webhook-Anfragen verarbeiten"""
+    log.info("Eingehende Anfrage")
+
     if not request.content_type == "multipart/form-data":
-        log.info("Request rejected. Invalid content type, possibly not from plex.")
+        log.info("Anfrage abgelehnt: Kein multipart/form-data (nicht von Plex)")
         return web.Response()
 
-    # try reading attached thumbnail
     try:
         reader = await request.multipart()
         metadata = None
         thumbnail = None
+
         while True:
             part = await reader.next()
             if part is None:
@@ -29,54 +28,56 @@ async def handle(request):
                 metadata = await part.json()
                 continue
             thumbnail = await part.read(decode=False)
+
     except Exception:
-        log.info("Request rejected. Error reading thumbnail.")
+        log.info("Anfrage abgelehnt: Fehler beim Lesen der Anfrage.")
         return web.Response(status=400)
 
-    # try reading event type
     try:
         event = metadata["event"]
-    except KeyError:
-        log.info("Request rejected. No event type specified, possibly not from plex.")
+    except (KeyError, TypeError):
+        log.info("Anfrage abgelehnt: Kein Event-Typ (nicht von Plex)")
         return web.Response()
 
-    # check if event is library.new event and handle it accordingly
     if event == "library.new":
         try:
             handle_library_new(metadata["Metadata"], thumbnail)
         except Exception as e:
-            log.error("Error handling library.new event.")
+            log.error("Fehler beim Verarbeiten von library.new")
             log.exception(e)
             return web.Response(status=400)
     else:
-        log.info(f"Request rejected. Event type of {event}.")
+        log.info(f"Event ignoriert: {event}")
 
     return web.Response()
 
 
 def handle_library_new(metadata, thumbnail):
-    """Check added type and call designated handler method"""
+    """Medientyp bestimmen und passenden Handler aufrufen"""
     log.debug(metadata)
-    library = metadata["librarySectionTitle"]
+
+    library = metadata.get("librarySectionTitle", "")
     if ALLOWED_LIBRARIES:
         if library not in ALLOWED_LIBRARIES:
-            log.info(f"Ignoring library.new event from library {library}")
+            log.info(f"Bibliothek ignoriert: {library}")
             return
-    ptype = metadata["type"]
+
+    ptype = metadata.get("type")
+
     if ptype == "movie":
-        log.info("Handling new movie announcement.")
+        log.info("Neuer Film wird angekündigt.")
         announcer.announce_movie(metadata, thumbnail)
     elif ptype == "show":
-        log.info("Handling new show announcement.")
+        log.info("Neue Serie wird angekündigt.")
         announcer.announce_show(metadata, thumbnail)
     elif ptype == "episode":
-        log.info("Handling new show announcement.")
+        log.info("Neue Episode wird angekündigt.")
         announcer.announce_episode(metadata, thumbnail)
     elif ptype == "track":
-        log.info("Handling new track announcement.")
+        log.info("Neuer Titel wird angekündigt.")
         announcer.announce_track(metadata, thumbnail)
     else:
-        log.error(f"ERROR: Unknown type {ptype}")
+        log.warning(f"Unbekannter Medientyp: {ptype}")
 
 
 if __name__ == "__main__":
@@ -85,12 +86,14 @@ if __name__ == "__main__":
         level=os.environ.get("LOGLEVEL", "INFO"),
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    log.debug("Logger initialized")
+    log.debug("Logger initialisiert")
 
     try:
         config = Config()
         announcer = Announcer(
-            config.get_discord_webhook_urls(), config.get_plex_server_url()
+            config.get_discord_webhook_urls(),
+            config.get_plex_server_url(),
+            config.get_plex_token(),
         )
         ALLOWED_LIBRARIES = config.get_allowed_libraries()
         PLEX_WEBHOOK_TOKEN = config.get_plex_webhook_token()
@@ -98,13 +101,10 @@ if __name__ == "__main__":
         log.critical(e, exc_info=True)
         exit(-1)
 
-    # set default port as specified in Dockerfile
-    port = "32500"
-    # get actual port mapping from docker context
-    if os.getenv("TCP_PORT_32500"):
-        port = os.getenv("TCP_PORT_32500")
-    # running web server and discord webhook client
-    log.info(f"Plex webhook URL: http://localhost:{port}/{PLEX_WEBHOOK_TOKEN}")
-    app = web.Application()
+    port = int(os.getenv("PORT", "32500"))
+    log.info(f"Plex Webhook URL: http://HOST:{port}/{PLEX_WEBHOOK_TOKEN}")
+    log.info("PlexAnnouncer gestartet und wartet auf Ereignisse...")
+
+    app = web.Application(client_max_size=50 * 1024 * 1024)  # 50MB für große Poster
     app.add_routes([web.post(f"/{PLEX_WEBHOOK_TOKEN}", handle)])
-    web.run_app(app, port=32500)
+    web.run_app(app, port=port)
