@@ -1,11 +1,15 @@
-FROM python:alpine
+FROM python:3.12-slim
 
-WORKDIR /plexannouncer
+WORKDIR /app
 
-COPY main.py announcer.py config.py requirements.txt .
-
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 32500/tcp
+COPY . .
 
-CMD [ "python", "./main.py" ]
+# Config-Verzeichnis für Unraid-Volume-Mount
+VOLUME ["/config"]
+
+EXPOSE 32500
+
+CMD ["python", "main.py"]
